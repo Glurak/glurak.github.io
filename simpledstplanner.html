@@ -1,0 +1,221 @@
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>DST farm planner</title>
+	<script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+	<style type="text/css">
+		.ctbl, .stbl, .viewwhat, .author {float:left;}
+		.viewwhat {margin:8px;border: 1px solid black; padding: 8px;}
+		.author {margin:8px;border: 1px solid black; padding: 8px;}
+		.c {cursor: pointer; background-color: #88ff88; width:100px; height:100px;text-align: center;}
+		.cfiller {background-color: black; padding: 3px;}
+		.stbl, .stbl td, .stbl th{border:1px solid black;border-collapse: collapse;}
+		.stbl th{font-size:60%;}
+		.qstats, .qstats th, .qstats td {border:1px solid black;border-collapse: collapse;}
+		.qstats td {font-size:90%;text-align: center;}
+		.qstats th {font-size:60%;}
+		.stbl-sel {background-color:yellow;}
+		.cAlone {background-color: #ff8888 !important;}
+	</style>
+	<script type="text/javascript">
+		function xy2td(x, y) {
+			return $('*[data-x="'+x+'"][data-y="'+y+'"]');
+		}
+		function td2x(td){
+			return td.data("x");
+		}
+		function td2y(td){
+			return td.data("y");
+		}
+		view_img = "product";
+		function viewImg(what) {
+			view_img = what;
+			redrawCs();
+		}
+		mem = [];
+		for(y=0;y<6;y++){
+			mem[y] = [];
+			for(x=0;x<6;x++) {
+				mem[y][x] = {
+					x: x,
+					qx: x % 3,
+					y: y,
+					qy: y % 3,
+					q: (x >= 3 ? 1 : 0) + (y >= 3 ? 2 : 0),
+					img_plant: null,
+					img_product: null,
+					img_seed: null,
+					growth: 0,
+					compost: 0,
+					manure: 0,
+					drink: 0,
+					name: "",
+					neighbors: 0
+				};
+			}
+		}
+		function redrawCs() {
+			console.log("redraw_cs");
+			$(".c").html("");
+			$(".gs,.cs,.ms,.ds,.gh,.ch,.mh,.dh").text("0");
+			for(y = 0; y < 6; y++) {
+				for(x = 0; x < 6; x++) {
+					mem[y][x].neighbors = 0;
+					if(mem[y][x].name != "") {
+						for(y2 = Math.max(y - 2, 0); y2 <= Math.min(y + 2, 5); y2++) {
+							for(x2 = Math.max(x - 2, 0); x2 <= Math.min(x + 2, 5); x2++){
+								console.log(""+x+":"+y+" "+x2+":"+y2);
+								if (mem[y][x].name == mem[y2][x2].name) {
+									mem[y][x].neighbors++;
+								}
+							}
+						}
+					}
+					if(mem[y][x].neighbors < 4 && mem[y][x].name != "") {
+						xy2td(x, y).addClass("cAlone");
+					}
+					else {
+						xy2td(x, y).removeClass("cAlone");
+					}
+					xy2td(x, y).html("");
+					if(view_img == "plant") xy2td(x, y).append(mem[y][x].img_plant);
+					if(view_img == "product") xy2td(x, y).append(mem[y][x].img_product);
+					if(view_img == "seed") xy2td(x, y).append(mem[y][x].img_seed);
+					$("*[data-quadrant="+mem[y][x].q+"] .gs").text($("*[data-quadrant="+mem[y][x].q+"] .gs").text()-0+mem[y][x].growth);
+					$("*[data-quadrant="+mem[y][x].q+"] .gh").text($("*[data-quadrant="+mem[y][x].q+"] .gh").text()-0+mem[y][x].growth*4);
+					$("*[data-quadrant="+mem[y][x].q+"] .cs").text($("*[data-quadrant="+mem[y][x].q+"] .cs").text()-0+mem[y][x].compost);
+					$("*[data-quadrant="+mem[y][x].q+"] .ch").text($("*[data-quadrant="+mem[y][x].q+"] .ch").text()-0+mem[y][x].compost*4);
+					$("*[data-quadrant="+mem[y][x].q+"] .ms").text($("*[data-quadrant="+mem[y][x].q+"] .ms").text()-0+mem[y][x].manure);
+					$("*[data-quadrant="+mem[y][x].q+"] .mh").text($("*[data-quadrant="+mem[y][x].q+"] .mh").text()-0+mem[y][x].manure*4);
+					$("*[data-quadrant="+mem[y][x].q+"] .ds").text($("*[data-quadrant="+mem[y][x].q+"] .ds").text()-0+mem[y][x].drink);
+					$("*[data-quadrant="+mem[y][x].q+"] .dh").text($("*[data-quadrant="+mem[y][x].q+"] .dh").text()-0+mem[y][x].drink*4);
+				}
+			}
+		}
+		$(function() {
+			$(".stbl tr:not(:first)").css("cursor", "pointer");
+			$(".stbl tr:not(:first)").click(function(){
+				$(".stbl-sel").removeClass("stbl-sel");
+				$(this).addClass("stbl-sel");
+			});
+			$(".c").click(function(){
+				if(!$(".stbl-sel").length)
+					return;
+
+				x = td2x($(this));
+				y = td2y($(this));
+
+				if($(".stbl-sel").data("shovel")) {
+					mem[y][x].img_plant = null;
+					mem[y][x].img_product = null;
+					mem[y][x].img_seed = null;
+					mem[y][x].growth = 0;
+					mem[y][x].compost = 0;
+					mem[y][x].manure = 0;
+					mem[y][x].drink = 0;
+					mem[y][x].name = "";
+				}
+				else {
+					mem[y][x].img_plant = $($(".stbl-sel").find("img").get(0)).clone();
+					mem[y][x].img_plant.attr("width", 80);
+					mem[y][x].img_plant.attr("height", 80);
+					mem[y][x].img_product = $($(".stbl-sel").find("img").get(1)).clone();
+					mem[y][x].img_product.attr("width", 80);
+					mem[y][x].img_product.attr("height", 80);
+					mem[y][x].img_seed = $($(".stbl-sel").find("img").get(2)).clone();
+					mem[y][x].img_seed.attr("width", 80);
+					mem[y][x].img_seed.attr("height", 80);
+					mem[y][x].growth = $($(".stbl-sel").find("td").get(8)).text()-0;
+					mem[y][x].compost = $($(".stbl-sel").find("td").get(9)).text()-0;
+					mem[y][x].manure = $($(".stbl-sel").find("td").get(10)).text()-0;
+					mem[y][x].drink = $($(".stbl-sel").find("td").get(11)).text()-0;
+					mem[y][x].name = mem[y][x].img_product.attr("alt").slice(0, -4);
+				}
+
+				redrawCs();
+			});
+			console.log( "ready!" );
+		});
+	</script>
+</head>
+<body>
+	<table class="ctbl">
+		<tr><td colspan=3>
+			<table class="qstats" data-quadrant=0>
+				<tr><td rowspan=2></td><th colspan="3">Nutrient</th><th rowspan="2">Drink Rate</th></tr>
+				<tr><th rowspan="1">Growth</th><th rowspan="1">Compost</th><th rowspan="1">Manure</th></tr>
+				<tr><th>per stage</th><td class="gs">0</td><td class="cs">0</td><td class="ms">0</td><td class="ds">0</td></tr>
+				<tr><th>per harvest</th><td class="gh">0</td><td class="ch">0</td><td class="mh">0</td><td class="dh">0</td></tr>
+			</table>
+		</td><td></td><td colspan=3>
+			<table class="qstats" data-quadrant=1>
+				<tr><td rowspan=2></td><th colspan="3">Nutrient</th><th rowspan="2">Drink Rate</th></tr>
+				<tr><th rowspan="1">Growth</th><th rowspan="1">Compost</th><th rowspan="1">Manure</th></tr>
+				<tr><th>per stage</th><td class="gs">0</td><td class="cs">0</td><td class="ms">0</td><td class="ds">0</td></tr>
+				<tr><th>per harvest</th><td class="gh">0</td><td class="ch">0</td><td class="mh">0</td><td class="dh">0</td></tr>
+			</table>
+		</td></tr>
+		<tr><td></td></tr>
+		<tr><td class="c" data-y="0" data-x="0"></td><td class="c" data-y="0" data-x="1"></td><td class="c" data-y="0" data-x="2"></td><td class="cfiller"></td>
+			<td class="c" data-y="0" data-x="3"></td><td class="c" data-y="0" data-x="4"></td><td class="c" data-y="0" data-x="5"></td></tr>
+		<tr><td class="c" data-y="1" data-x="0"></td><td class="c" data-y="1" data-x="1"></td><td class="c" data-y="1" data-x="2"></td><td class="cfiller"></td>
+			<td class="c" data-y="1" data-x="3"></td><td class="c" data-y="1" data-x="4"></td><td class="c" data-y="1" data-x="5"></td></tr>
+		<tr><td class="c" data-y="2" data-x="0"></td><td class="c" data-y="2" data-x="1"></td><td class="c" data-y="2" data-x="2"></td><td class="cfiller"></td>
+			<td class="c" data-y="2" data-x="3"></td><td class="c" data-y="2" data-x="4"></td><td class="c" data-y="2" data-x="5"></td></tr>
+		<tr><td class="cfiller"></td><td class="cfiller"></td><td class="cfiller"></td><td class="cfiller"></td><td class="cfiller"></td><td class="cfiller"></td><td class="cfiller"></td></tr>
+		<tr><td class="c" data-y="3" data-x="0"></td><td class="c" data-y="3" data-x="1"></td><td class="c" data-y="3" data-x="2"></td><td class="cfiller"></td>
+			<td class="c" data-y="3" data-x="3"></td><td class="c" data-y="3" data-x="4"></td><td class="c" data-y="3" data-x="5"></td></tr>
+		<tr><td class="c" data-y="4" data-x="0"></td><td class="c" data-y="4" data-x="1"></td><td class="c" data-y="4" data-x="2"></td><td class="cfiller"></td>
+			<td class="c" data-y="4" data-x="3"></td><td class="c" data-y="4" data-x="4"></td><td class="c" data-y="4" data-x="5"></td></tr>
+		<tr><td class="c" data-y="5" data-x="0"></td><td class="c" data-y="5" data-x="1"></td><td class="c" data-y="5" data-x="2"></td><td class="cfiller"></td>
+			<td class="c" data-y="5" data-x="3"></td><td class="c" data-y="5" data-x="4"></td><td class="c" data-y="5" data-x="5"></td></tr>
+		<tr><td></td></tr>
+		<tr><td colspan=3>
+			<table class="qstats" data-quadrant=2>
+				<tr><td rowspan=2></td><th colspan="3">Nutrient</th><th rowspan="2">Drink Rate</th></tr>
+				<tr><th rowspan="1">Growth</th><th rowspan="1">Compost</th><th rowspan="1">Manure</th></tr>
+				<tr><th>per stage</th><td class="gs">0</td><td class="cs">0</td><td class="ms">0</td><td class="ds">0</td></tr>
+				<tr><th>per harvest</th><td class="gh">0</td><td class="ch">0</td><td class="mh">0</td><td class="dh">0</td></tr>
+			</table>
+		</td><td></td><td colspan=3>
+			<table class="qstats" data-quadrant=3>
+				<tr><td rowspan=2></td><th colspan="3">Nutrient</th><th rowspan="2">Drink Rate</th></tr>
+				<tr><th rowspan="1">Growth</th><th rowspan="1">Compost</th><th rowspan="1">Manure</th></tr>
+				<tr><th>per stage</th><td class="gs">0</td><td class="cs">0</td><td class="ms">0</td><td class="ds">0</td></tr>
+				<tr><th>per harvest</th><td class="gh">0</td><td class="ch">0</td><td class="mh">0</td><td class="dh">0</td></tr>
+			</table>
+		</td></tr>
+	</table>
+
+<table class="stbl" style="text-align:center;">
+<tbody><tr><th rowspan="2" class="unsortable">Plant</th><th rowspan="2">Name</th><th rowspan="2">Product</th><th rowspan="2">Seeds</th><th colspan="4">Season</th><th colspan="3">Nutrient (per stage)</th><th rowspan="2">Drink Rate<br>(per stage)</th></tr>
+<tr><th rowspan="1">Autumn</th><th rowspan="1">Winter</th><th rowspan="1">Spring</th><th rowspan="1">Summer</th><th rowspan="1">Growth</th><th rowspan="1">Compost</th><th rowspan="1">Manure</th></tr>
+<tr data-shovel=1><td><img src=https://static.wikia.nocookie.net/dont-starve-game/images/e/e2/Regal_Shovel.png/revision/latest/scale-to-width-down/80 width=32 height=32></td><td>Remove plant</td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td><img alt="Carrot Plant.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/6/68/Carrot_Plant.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Carrot Plant.png" data-image-key="Carrot_Plant.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/6/68/Carrot_Plant.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="36"></td><td>Carrot Plant</td><td><img alt="Carrot.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/c/c3/Carrot.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Carrot.png" data-image-key="Carrot.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/c/c3/Carrot.png/revision/latest/scale-to-width-down/80" class=" ls-is-cached lazyloaded" width="40" height="40"></td><td><img alt="Oblong Seeds.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/a/ae/Oblong_Seeds.png/revision/latest/scale-to-width-down/80 " decoding="async" data-image-name="Oblong Seeds.png" data-image-key="Oblong Seeds.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/a/ae/Oblong_Seeds.png/revision/latest/scale-to-width-down/80 " class="lazyloaded" width=32 height=32 title="Oblong Seeds"></td><td>+</td><td>+</td><td>+</td><td></td><td><span style="color:red;">-4</span></td><td><span style="color:green;">+2</span></td><td><span style="color:green;">+2</span></td><td>0.75</td></tr>
+<tr><td><img alt="Corn Stalk.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/c/cc/Corn_Stalk.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Corn Stalk.png" data-image-key="Corn_Stalk.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/c/cc/Corn_Stalk.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="45"></td><td>Corn Stalk</td><td><img alt="Corn.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/f/f8/Corn.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Corn.png" data-image-key="Corn.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/f/f8/Corn.png/revision/latest/scale-to-width-down/80" class=" ls-is-cached lazyloaded" width="40" height="40"></td><td><img alt="Clustered Seeds.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/7/73/Clustered_Seeds.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Clustered Seeds.png" data-image-key="Clustered Seeds.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/7/73/Clustered_Seeds.png/revision/latest/scale-to-width-down/80" class="lazyloaded" width=32 height=32 title="Clustered Seeds"></td><td>+</td><td></td><td>+</td><td>+</td><td><span style="color:green;">+2</span></td><td><span style="color:red;">-4</span></td><td><span style="color:green;">+2</span></td><td>0.75</td></tr>
+<tr><td><img alt="Potato Plant.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/8/81/Potato_Plant.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Potato Plant.png" data-image-key="Potato_Plant.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/8/81/Potato_Plant.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="46"></td><td>Potato Plant</td><td><img alt="Potato.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/c/c2/Potato.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Potato.png" data-image-key="Potato.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/c/c2/Potato.png/revision/latest/scale-to-width-down/80" class=" ls-is-cached lazyloaded" width="40" height="40"></td><td><img alt="Fluffy Seeds.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/c/cd/Fluffy_Seeds.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Fluffy Seeds.png" data-image-key="Fluffy Seeds.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/c/cd/Fluffy_Seeds.png/revision/latest/scale-to-width-down/80" class="lazyloaded" width=32 height=32 title="Fluffy Seeds"></td><td>+</td><td>+</td><td>+</td><td></td><td><span style="color:green;">+2</span></td><td><span style="color:green;">+2</span></td><td><span style="color:red;">-4</span></td><td>0.75</td></tr>
+<tr><td><img alt="Toma Root Plant.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/2/2f/Toma_Root_Plant.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Toma Root Plant.png" data-image-key="Toma_Root_Plant.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/2/2f/Toma_Root_Plant.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="40"></td><td>Toma Root Plant</td><td><img alt="Toma Root.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/9/9c/Toma_Root.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Toma Root.png" data-image-key="Toma_Root.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/9/9c/Toma_Root.png/revision/latest/scale-to-width-down/80" class=" ls-is-cached lazyloaded" width="40" height="40"></td><td><img alt="Spiky Seeds.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/e/e0/Spiky_Seeds.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Spiky Seeds.png" data-image-key="Spiky Seeds.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/e/e0/Spiky_Seeds.png/revision/latest/scale-to-width-down/80" class="lazyloaded" width=32 height=32 title="Spiky Seeds"></td><td>+</td><td></td><td>+</td><td>+</td><td><span style="color:red;">-2</span></td><td><span style="color:red;">-2</span></td><td><span style="color:green;">+4</span></td><td>3.5</td></tr>
+<tr><td><img alt="Asparagus Fern.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/0/09/Asparagus_Fern.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Asparagus Fern.png" data-image-key="Asparagus_Fern.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/0/09/Asparagus_Fern.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="41"></td><td>Asparagus Fern</td><td><img alt="Asparagus.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/4/45/Asparagus.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Asparagus.png" data-image-key="Asparagus.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/4/45/Asparagus.png/revision/latest/scale-to-width-down/80" class=" ls-is-cached lazyloaded" width="40" height="40"></td><td><img alt="Tubular Seeds.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/c/c2/Tubular_Seeds.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Tubular Seeds.png" data-image-key="Tubular Seeds.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/c/c2/Tubular_Seeds.png/revision/latest/scale-to-width-down/80" class="lazyloaded" width=32 height=32 title="Tubular Seeds"></td><td></td><td>+</td><td>+</td><td></td><td><span style="color:green;">+2</span></td><td><span style="color:red;">-4</span></td><td><span style="color:green;">+2</span></td><td>0.75</td></tr>
+<tr><td><img alt="Eggplant Stalk.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/5/51/Eggplant_Stalk.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Eggplant Stalk.png" data-image-key="Eggplant_Stalk.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/5/51/Eggplant_Stalk.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="53"></td><td>Eggplant Stalk</td><td><img alt="Eggplant.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/8/8f/Eggplant.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Eggplant.png" data-image-key="Eggplant.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/8/8f/Eggplant.png/revision/latest/scale-to-width-down/80" class=" ls-is-cached lazyloaded" width="40" height="40"></td><td><img alt="Swirly Seeds.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/7/75/Swirly_Seeds.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Swirly Seeds.png" data-image-key="Swirly Seeds.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/7/75/Swirly_Seeds.png/revision/latest/scale-to-width-down/80" class="lazyloaded" width=32 height=32 title="Swirly Seeds"></td><td>+</td><td></td><td>+</td><td></td><td><span style="color:green;">+2</span></td><td><span style="color:green;">+2</span></td><td><span style="color:red;">-4</span></td><td>2</td></tr>
+<tr><td><img alt="Pumpkin Plant.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/d/dd/Pumpkin_Plant.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Pumpkin Plant.png" data-image-key="Pumpkin_Plant.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/d/dd/Pumpkin_Plant.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="58"></td><td>Pumpkin Plant</td><td><img alt="Pumpkin.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/6/64/Pumpkin.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Pumpkin.png" data-image-key="Pumpkin.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/6/64/Pumpkin.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="40"></td><td><img alt="Sharp Seeds.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/4/4f/Sharp_Seeds.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Sharp Seeds.png" data-image-key="Sharp Seeds.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/4/4f/Sharp_Seeds.png/revision/latest/scale-to-width-down/80" class="lazyloaded" width=32 height=32 title="Sharp Seeds"></td><td>+</td><td>+</td><td></td><td></td><td><span style="color:red;">-4</span></td><td><span style="color:green;">+2</span></td><td><span style="color:green;">+2</span></td><td>2</td></tr>
+<tr><td><img alt="Watermelon Plant.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/2/22/Watermelon_Plant.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Watermelon Plant.png" data-image-key="Watermelon_Plant.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/2/22/Watermelon_Plant.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="31"></td><td>Watermelon Plant</td><td><img alt="Watermelon.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/0/06/Watermelon.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Watermelon.png" data-image-key="Watermelon.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/0/06/Watermelon.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="40"></td><td><img alt="Square Seeds.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/2/2a/Square_Seeds.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Square Seeds.png" data-image-key="Square Seeds.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/2/2a/Square_Seeds.png/revision/latest/scale-to-width-down/80" class="lazyloaded" width=32 height=32 title="Square Seeds"></td><td></td><td></td><td>+</td><td>+</td><td><span style="color:green;">+4</span></td><td><span style="color:red;">-2</span></td><td><span style="color:red;">-2</span></td><td>3.5</td></tr>
+<tr><td><img alt="Dragon Fruit Vine.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/d/d1/Dragon_Fruit_Vine.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Dragon Fruit Vine.png" data-image-key="Dragon_Fruit_Vine.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/d/d1/Dragon_Fruit_Vine.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="50"></td><td>Dragon Fruit Vine</td><td><img alt="Dragon Fruit.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/2/29/Dragon_Fruit.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Dragon Fruit.png" data-image-key="Dragon_Fruit.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/2/29/Dragon_Fruit.png/revision/latest/scale-to-width-down/80" class=" ls-is-cached lazyloaded" width="40" height="40"></td><td><img alt="Bulbous Seeds.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/8/8a/Bulbous_Seeds.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Bulbous Seeds.png" data-image-key="Bulbous Seeds.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/8/8a/Bulbous_Seeds.png/revision/latest/scale-to-width-down/80" class="lazyloaded" width=32 height=32 title="Bulbous Seeds"></td><td></td><td></td><td>+</td><td>+</td><td><span style="color:green;">+4</span></td><td><span style="color:green;">+4</span></td><td><span style="color:red;">-8</span></td><td>2</td></tr>
+<tr><td><img alt="Durian Vine.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/8/86/Durian_Vine.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Durian Vine.png" data-image-key="Durian_Vine.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/8/86/Durian_Vine.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="53"></td><td>Durian Vine</td><td><img alt="Durian.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/3/39/Durian.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Durian.png" data-image-key="Durian.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/3/39/Durian.png/revision/latest/scale-to-width-down/80" class=" ls-is-cached lazyloaded" width="40" height="40"></td><td><img alt="Brittle Seed Pods .png" src="https://static.wikia.nocookie.net/dont-starve-game/images/d/de/Brittle_Seed_Pods.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Brittle Seed Pods .png" data-image-key="Brittle Seed Pods .png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/d/de/Brittle_Seed_Pods.png/revision/latest/scale-to-width-down/80" class="lazyloaded" width=32 height=32 title="Brittle Seed Pods "></td><td></td><td></td><td>+</td><td></td><td><span style="color:green;">+4</span></td><td><span style="color:red;">-8</span></td><td><span style="color:green;">+4</span></td><td>0.75</td></tr>
+<tr><td><img alt="Garlic Plant.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/b/b5/Garlic_Plant.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Garlic Plant.png" data-image-key="Garlic_Plant.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/b/b5/Garlic_Plant.png/revision/latest/scale-to-width-down/80" class=" ls-is-cached lazyloaded" width="40" height="47"></td><td>Garlic Plant</td><td><img alt="Garlic.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/c/cc/Garlic.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Garlic.png" data-image-key="Garlic.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/c/cc/Garlic.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="40"></td><td><img alt="Seed Pods .png" src="https://static.wikia.nocookie.net/dont-starve-game/images/e/ea/Seed_Pods.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Seed Pods .png" data-image-key="Seed Pods .png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/e/ea/Seed_Pods.png/revision/latest/scale-to-width-down/80" class="lazyloaded" width=32 height=32 title="Seed Pods "></td><td>+</td><td>+</td><td>+</td><td>+</td><td><span style="color:green;">+4</span></td><td><span style="color:red;">-8</span></td><td><span style="color:green;">+4</span></td><td>0.75</td></tr>
+<tr><td><img alt="Onion Plant.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/f/f0/Onion_Plant.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Onion Plant.png" data-image-key="Onion_Plant.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/f/f0/Onion_Plant.png/revision/latest/scale-to-width-down/80" class=" ls-is-cached lazyloaded" width="40" height="47"></td><td>Onion Plant</td><td><img alt="Onion.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/5/51/Onion.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Onion.png" data-image-key="Onion.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/5/51/Onion.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="40"></td><td><img alt="Pointy Seeds.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/e/e9/Pointy_Seeds.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Pointy Seeds.png" data-image-key="Pointy Seeds.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/e/e9/Pointy_Seeds.png/revision/latest/scale-to-width-down/80" class="lazyloaded" width=32 height=32 title="Pointy Seeds"></td><td>+</td><td></td><td>+</td><td>+</td><td><span style="color:red;">-8</span></td><td><span style="color:green;">+4</span></td><td><span style="color:green;">+4</span></td><td>2</td></tr>
+<tr><td><img alt="Pepper Plant.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/f/f8/Pepper_Plant.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Pepper Plant.png" data-image-key="Pepper_Plant.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/f/f8/Pepper_Plant.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="39"></td><td>Pepper Plant</td><td><img alt="Pepper.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/5/50/Pepper.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Pepper.png" data-image-key="Pepper.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/5/50/Pepper.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="40"></td><td><img alt="Lumpy Seeds.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/a/a4/Lumpy_Seeds.png/revision/latest?cb=20201126205610" decoding="async" data-image-name="Lumpy Seeds.png" data-image-key="Lumpy Seeds.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/a/a4/Lumpy_Seeds.png/revision/latest?cb=20201126205610" class="lazyloaded" width=32 height=32 title="Lumpy Seeds"></td><td>+</td><td></td><td></td><td>+</td><td><span style="color:green;">+4</span></td><td><span style="color:green;">+4</span></td><td><span style="color:red;">-8</span></td><td>0.75</td></tr>
+<tr><td><img alt="Pomegranate Branch.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/5/5c/Pomegranate_Branch.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Pomegranate Branch.png" data-image-key="Pomegranate_Branch.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/5/5c/Pomegranate_Branch.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="42"></td><td>Pomegranate Branch</td><td><img alt="Pomegranate.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/1/1b/Pomegranate.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Pomegranate.png" data-image-key="Pomegranate.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/1/1b/Pomegranate.png/revision/latest/scale-to-width-down/80" class=" lazyloaded" width="40" height="40"></td><td><img alt="Windblown Seeds.png" src="https://static.wikia.nocookie.net/dont-starve-game/images/4/40/Windblown_Seeds.png/revision/latest/scale-to-width-down/80" decoding="async" data-image-name="Windblown Seeds.png" data-image-key="Windblown Seeds.png" data-src="https://static.wikia.nocookie.net/dont-starve-game/images/4/40/Windblown_Seeds.png/revision/latest/scale-to-width-down/80" class="lazyloaded" width=32 height=32 title="Windblown Seeds"></td><td></td><td></td><td>+</td><td>+</td><td><span style="color:red;">-8</span></td><td><span style="color:green;">+4</span></td><td><span style="color:green;">+4</span></td><td>2</td></tr></tbody></table>
+
+<div class=viewwhat>
+Change what images to draw in field: <a href='javascript:viewImg("plant")'>plant</a> <a href='javascript:viewImg("product")'>product</a> <a href='javascript:viewImg("seed")'>seed</a>
+</div>
+
+<div class=author>
+This tool uses data and images from wiki dontstarve.fandom.com
+<br>
+Author of this tool: /u/glurak
+</div>
+
+
+</body>
+</html>
